@@ -896,11 +896,14 @@ class _VideoPageState extends State<VideoPage>
                           debugPrint('弹幕控制器创建成功');
                         },
                         option: DanmakuOption(
-                            fontSize: _fontSize,
-                            duration: _duration.toDouble(),
-                            opacity: _opacity,
-                            fontFamily: _danmakuUseSystemFont ? null : customAppFontFamily,
-                            strokeWidth: _showStroke ? 1.5 : 0.0,),
+                          fontSize: _fontSize,
+                          duration: _duration.toDouble(),
+                          opacity: _opacity,
+                          fontFamily: _danmakuUseSystemFont
+                              ? null
+                              : customAppFontFamily,
+                          strokeWidth: _showStroke ? 1.5 : 0.0,
+                        ),
                       ),
                     ),
 
@@ -1010,19 +1013,34 @@ class _VideoPageState extends State<VideoPage>
                                   )
                                 : Container(),
                             Expanded(
-                              child: ProgressBar(
-                                timeLabelLocation: TimeLabelLocation.none,
-                                progress: videoController.currentPosition,
-                                buffered: videoController.buffer,
-                                total: videoController.duration,
-                                onSeek: (duration) {
-                                  if (playerTimer != null) {
-                                    playerTimer!.cancel();
-                                  }
-                                  videoController.currentPosition = duration;
-                                  playerController.seek(duration);
-                                  playerTimer = getPlayerTimer();
+                              // 用 RawGestureDetector 提前消耗豎向拖動,
+                              // 防止 Android 系统返回手勢(上滑)被 ProgressBar 誤識別為進度拖動。橫向拖動不受影響。
+                              child: RawGestureDetector(
+                                gestures: <Type, GestureRecognizerFactory>{
+                                  VerticalDragGestureRecognizer:
+                                      GestureRecognizerFactoryWithHandlers<
+                                          VerticalDragGestureRecognizer>(
+                                    () => VerticalDragGestureRecognizer(),
+                                    (VerticalDragGestureRecognizer instance) {
+                                      instance.onUpdate =
+                                          (_) {}; // 消耗豎向拖動,不做任何操作
+                                    },
+                                  ),
                                 },
+                                child: ProgressBar(
+                                  timeLabelLocation: TimeLabelLocation.none,
+                                  progress: videoController.currentPosition,
+                                  buffered: videoController.buffer,
+                                  total: videoController.duration,
+                                  onSeek: (duration) {
+                                    if (playerTimer != null) {
+                                      playerTimer!.cancel();
+                                    }
+                                    videoController.currentPosition = duration;
+                                    playerController.seek(duration);
+                                    playerTimer = getPlayerTimer();
+                                  },
+                                ),
                               ),
                             ),
                             ((Platform.isAndroid || Platform.isIOS) &&
